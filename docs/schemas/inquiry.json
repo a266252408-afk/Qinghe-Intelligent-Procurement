@@ -1,0 +1,58 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "description": "询价单与比价相关 Schema",
+  "definitions": {
+    "InquiryGenerateInput": {
+      "type": "object",
+      "required": ["order_id", "template_id"],
+      "properties": {
+        "order_id": { "type": "integer" },
+        "template_id": {
+          "type": "string",
+          "enum": ["standard", "simple", "with_delivery", "greening_boq"],
+          "description": "询价单模板：standard=标准版 / simple=简版 / with_delivery=含交货期版 / greening_boq=绿化工程量清单版"
+        }
+      },
+      "python_class": "app.schemas.inquiry.InquiryGenerateInput"
+    },
+    "InquiryResult": {
+      "type": "object",
+      "required": ["inquiry_id", "file_path", "filename", "template_id", "template_name", "download_url"],
+      "properties": {
+        "inquiry_id": { "type": "integer" },
+        "file_path": { "type": "string" },
+        "filename": { "type": "string", "description": "下载文件名" },
+        "preview_items": { "type": "array", "items": { "type": "object" } },
+        "template_id": { "type": "string" },
+        "template_name": { "type": "string", "description": "模板显示名称" },
+        "download_url": { "type": "string", "description": "询价单下载接口地址" }
+      },
+      "python_class": "app.schemas.inquiry.InquiryResult"
+    },
+    "CompareWeights": {
+      "type": "object",
+      "properties": {
+        "price": { "type": "number", "minimum": 0, "maximum": 1, "default": 0.4 },
+        "history": { "type": "number", "minimum": 0, "maximum": 1, "default": 0.3 },
+        "delivery": { "type": "number", "minimum": 0, "maximum": 1, "default": 0.2 },
+        "payment": { "type": "number", "minimum": 0, "maximum": 1, "default": 0.1 }
+      },
+      "description": "比价权重，四项之和须等于 1.0",
+      "python_class": "app.schemas.compare.CompareWeights"
+    },
+    "CompareResult": {
+      "type": "object",
+      "required": ["order_id", "suppliers", "ai_suggestion"],
+      "properties": {
+        "order_id": { "type": "integer" },
+        "suppliers": { "type": "array", "items": { "type": "object" }, "description": "各供应商得分列表" },
+        "bar_chart_option": { "type": "object", "description": "ECharts 柱状图配置（价格对比）" },
+        "radar_chart_option": { "type": "object", "description": "ECharts 雷达图配置（多维评分）" },
+        "ai_suggestion": { "type": "string", "description": "AI 自然语言建议" },
+        "ai_suggestion_source": { "type": "string", "enum": ["ai", "template"] },
+        "weights_used": { "$ref": "#/definitions/CompareWeights" }
+      },
+      "python_class": "app.schemas.compare.CompareResult"
+    }
+  }
+}

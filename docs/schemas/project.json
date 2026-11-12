@@ -1,0 +1,42 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "description": "项目管理相关 Schema",
+  "definitions": {
+    "ProjectCreate": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": { "type": "string", "minLength": 2, "maxLength": 100, "description": "项目名称" },
+        "budget": { "type": ["number", "null"], "description": "预算金额（元）" },
+        "remark": { "type": ["string", "null"], "description": "备注" }
+      },
+      "python_class": "app.schemas.project.ProjectCreate"
+    },
+    "ProjectUpdate": {
+      "type": "object",
+      "properties": {
+        "name": { "type": ["string", "null"] },
+        "budget": { "type": ["number", "null"] },
+        "status": { "type": ["string", "null"], "enum": ["active", "completed", "archived", null] },
+        "remark": { "type": ["string", "null"] }
+      },
+      "python_class": "app.schemas.project.ProjectUpdate"
+    },
+    "ProjectOut": {
+      "type": "object",
+      "required": ["project_id", "team_id", "name", "owner_id", "status", "created_at"],
+      "properties": {
+        "project_id": { "type": "integer" },
+        "team_id": { "type": "integer" },
+        "name": { "type": "string" },
+        "owner_id": { "type": "integer" },
+        "budget": { "type": ["number", "null"] },
+        "status": { "type": "string", "enum": ["active", "completed", "archived"] },
+        "remark": { "type": ["string", "null"] },
+        "created_at": { "type": "string", "format": "date-time" },
+        "updated_at": { "type": "string", "format": "date-time" }
+      },
+      "python_class": "app.schemas.project.ProjectOut"
+    }
+  }
+}

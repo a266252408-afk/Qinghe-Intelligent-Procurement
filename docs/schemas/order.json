@@ -1,0 +1,49 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "description": "采购单相关 Schema",
+  "definitions": {
+    "OrderStatus": {
+      "type": "string",
+      "enum": ["draft", "pending_approval", "approved", "ordered", "received", "settled", "rejected"],
+      "description": "采购单状态机枚举"
+    },
+    "OrderItemCreate": {
+      "type": "object",
+      "required": ["species", "spec", "quantity", "unit"],
+      "properties": {
+        "species": { "type": "string", "description": "苗木品种中文名称" },
+        "spec": { "type": "string", "description": "规格，如 胸径12cm" },
+        "quantity": { "type": "number", "minimum": 0, "description": "数量" },
+        "unit": { "type": "string", "description": "单位，如 株" },
+        "unit_price": { "type": ["number", "null"], "description": "单价（元）" },
+        "total_price": { "type": ["number", "null"], "description": "小计（元）" }
+      },
+      "python_class": "app.schemas.order.OrderItemCreate"
+    },
+    "OrderCreate": {
+      "type": "object",
+      "required": ["project_id"],
+      "properties": {
+        "project_id": { "type": "integer" },
+        "remark": { "type": ["string", "null"] }
+      },
+      "python_class": "app.schemas.order.OrderCreate"
+    },
+    "OrderOut": {
+      "type": "object",
+      "required": ["order_id", "project_id", "creator_id", "status", "created_at"],
+      "properties": {
+        "order_id": { "type": "integer" },
+        "project_id": { "type": "integer" },
+        "creator_id": { "type": "integer" },
+        "status": { "$ref": "#/definitions/OrderStatus" },
+        "total_amount": { "type": ["number", "null"] },
+        "remark": { "type": ["string", "null"] },
+        "items": { "type": "array", "items": { "type": "object" } },
+        "created_at": { "type": "string", "format": "date-time" },
+        "updated_at": { "type": "string", "format": "date-time" }
+      },
+      "python_class": "app.schemas.order.OrderOut"
+    }
+  }
+}

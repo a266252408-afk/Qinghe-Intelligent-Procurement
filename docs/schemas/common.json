@@ -1,0 +1,70 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "description": "通用基础 Schema — 园林工程智能采购助手",
+  "definitions": {
+    "APIResponse": {
+      "description": "所有 API 统一响应格式（CLAUDE.md §7 红线）",
+      "type": "object",
+      "required": ["code", "msg"],
+      "properties": {
+        "code": {
+          "type": "integer",
+          "description": "0 成功，非 0 失败"
+        },
+        "msg": {
+          "type": "string",
+          "description": "消息描述，成功时为 ok"
+        },
+        "data": {
+          "description": "业务数据，失败时为 null"
+        }
+      },
+      "python_class": "app.core.response.APIResponse"
+    },
+    "Pagination": {
+      "description": "分页查询参数",
+      "type": "object",
+      "properties": {
+        "page": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 1,
+          "description": "页码，从 1 开始"
+        },
+        "page_size": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 20,
+          "description": "每页条数"
+        }
+      },
+      "python_class": "app.schemas.common.Pagination"
+    },
+    "TokenPayload": {
+      "description": "JWT 载荷结构",
+      "type": "object",
+      "required": ["user_id", "exp"],
+      "properties": {
+        "user_id": {
+          "type": "integer",
+          "description": "用户主键 ID"
+        },
+        "team_id": {
+          "type": ["integer", "null"],
+          "description": "所属团队 ID，未加入团队时为 null"
+        },
+        "role": {
+          "type": ["string", "null"],
+          "enum": ["owner", "member", null],
+          "description": "团队角色"
+        },
+        "exp": {
+          "type": "integer",
+          "description": "过期时间戳（Unix）"
+        }
+      },
+      "python_class": "app.schemas.common.TokenPayload"
+    }
+  }
+}

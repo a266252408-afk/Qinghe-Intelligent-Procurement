@@ -1,0 +1,89 @@
+# ========== Python（后端） ==========
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.eggs/
+dist/
+build/
+.venv/
+venv/
+env/
+ENV/
+.python-version
+
+# ========== 环境变量（绝不提交，CLAUDE.md §7 红线） ==========
+.env
+.env.local
+.env.*.local
+.env.*
+!.env.example
+*.pem
+*.key
+
+# ========== 数据库与上传文件 ==========
+data/
+backend/data/
+
+# ========== Chroma 向量库 ==========
+chroma/
+backend/chroma/
+chroma-server*/
+*.db
+*.db-*
+*.sqlite*
+
+# ========== 前端 ==========
+node_modules/
+frontend/dist/
+frontend/.vite/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ========== 测试覆盖率 ==========
+.coverage
+htmlcov/
+.pytest_cache/
+.coverage.*
+coverage/
+.nyc_output/
+
+# ========== IDE 与编辑器 ==========
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ========== Claude 本地配置（不提交） ==========
+CLAUDE.local.md
+
+# ========== 临时与备份文件 ==========
+*.tmp
+*.bak
+*.orig
+
+# ========== 日志目录 ==========
+logs/
+*.log
+
+# ========== Alembic 迁移缓存 ==========
+backend/alembic/versions/__pycache__/
+
+# 本地代理、发布暂存与评测产物
+.claude/
+.codex/
+.agents/
+.zcode/
+.publish-qinghe/
+.release-verify/
+.venv-release/
+evaluation/
+loadtest/

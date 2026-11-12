@@ -1,0 +1,54 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "description": "知识库与对话相关 Schema",
+  "definitions": {
+    "KnowledgeQueryInput": {
+      "type": "object",
+      "required": ["question", "session_id"],
+      "properties": {
+        "question": { "type": "string", "description": "用户问题" },
+        "session_id": { "type": "string" }
+      },
+      "python_class": "app.schemas.knowledge_agent.KnowledgeQueryInput"
+    },
+    "KnowledgeQueryResult": {
+      "type": "object",
+      "required": ["answer"],
+      "properties": {
+        "answer": { "type": "string" },
+        "sources": { "type": "array", "items": { "type": "string" } },
+        "trend_chart_option": { "type": ["object", "null"], "description": "ECharts 折线图，无趋势查询时为 null" }
+      },
+      "python_class": "app.schemas.knowledge_agent.KnowledgeQueryResult"
+    },
+    "KnowledgeRecordExtract": {
+      "type": "object",
+      "required": ["needs_clarification"],
+      "properties": {
+        "needs_clarification": { "type": "boolean" },
+        "clarification_text": { "type": ["string", "null"] },
+        "extracted": { "type": ["object", "null"], "description": "提取的候选信息" }
+      },
+      "python_class": "app.schemas.knowledge_agent.KnowledgeRecordExtract"
+    },
+    "ChatInput": {
+      "type": "object",
+      "required": ["message", "session_id"],
+      "properties": {
+        "message": { "type": "string" },
+        "session_id": { "type": "integer" }
+      },
+      "python_class": "app.schemas.chat.ChatInput"
+    },
+    "ChatChunk": {
+      "type": "object",
+      "required": ["delta", "session_id"],
+      "properties": {
+        "delta": { "type": "string", "description": "增量 token" },
+        "done": { "type": "boolean", "default": false },
+        "session_id": { "type": "integer" }
+      },
+      "python_class": "app.schemas.chat.ChatChunk"
+    }
+  }
+}

@@ -1,0 +1,49 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "description": "询价单与报价单 Schema",
+  "definitions": {
+    "QuoteItemOut": {
+      "type": "object",
+      "required": ["quote_item_id", "quote_id", "species", "spec"],
+      "properties": {
+        "quote_item_id": { "type": "integer" },
+        "quote_id": { "type": "integer" },
+        "species": { "type": "string" },
+        "spec": { "type": "string" },
+        "unit_price": { "type": ["number", "null"], "description": "报价单价（元）" },
+        "quantity": { "type": ["number", "null"] },
+        "total_price": { "type": ["number", "null"] },
+        "delivery_days": { "type": ["integer", "null"], "description": "交货期（天）" },
+        "payment_terms": { "type": ["string", "null"], "description": "付款条件" },
+        "valid_until": { "type": ["string", "null"], "format": "date", "description": "报价有效期" }
+      },
+      "python_class": "app.schemas.quote.QuoteItemOut"
+    },
+    "QuoteOut": {
+      "type": "object",
+      "required": ["quote_id", "order_id", "created_at"],
+      "properties": {
+        "quote_id": { "type": "integer" },
+        "order_id": { "type": "integer" },
+        "supplier_id": { "type": ["integer", "null"] },
+        "supplier_name": { "type": ["string", "null"] },
+        "file_path": { "type": "string", "description": "原始报价文件存储路径" },
+        "items": { "type": "array", "items": { "$ref": "#/definitions/QuoteItemOut" } },
+        "created_at": { "type": "string", "format": "date-time" }
+      },
+      "python_class": "app.schemas.quote.QuoteOut"
+    },
+    "InquirySheetOut": {
+      "type": "object",
+      "required": ["inquiry_id", "order_id", "file_path", "created_at"],
+      "properties": {
+        "inquiry_id": { "type": "integer" },
+        "order_id": { "type": "integer" },
+        "template_id": { "type": "string", "description": "使用的模板标识" },
+        "file_path": { "type": "string", "description": "生成的询价单文件路径" },
+        "created_at": { "type": "string", "format": "date-time" }
+      },
+      "python_class": "app.schemas.quote.InquirySheetOut"
+    }
+  }
+}

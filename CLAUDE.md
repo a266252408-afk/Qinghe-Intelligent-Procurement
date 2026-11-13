@@ -20,7 +20,7 @@
 - **大模型**：LangChain + OpenAI 兼容接口（三档分工：轻量/中量/重量）
 - **知识库**：Chroma（向量）+ rank_bm25（关键词）+ LangChain EnsembleRetriever（混合检索）
 - **认证**：python-jose（JWT）+ bcrypt
-- **部署**：本地/云服务器直接运行（uvicorn + Vite 构建产物）
+- **部署**：Docker Compose（backend + frontend/Nginx），也支持本地直接运行
 - **CI/CD**：GitHub Actions
 - **测试**：pytest（后端）+ Vitest（前端）
 
@@ -53,16 +53,20 @@
 │   │   ├── storage/            # 文件存储
 │   │   └── db/                 # 数据库连接
 │   ├── tests/                  # 后端测试
-│   └── alembic/                # 数据库迁移
+│   ├── alembic/                # 数据库迁移
+│   └── Dockerfile              # 后端镜像构建
 ├── frontend/                   # 前端代码
-│   └── src/
-│       ├── views/              # 页面视图
-│       ├── components/         # 组件
-│       ├── api/                # API 调用层（禁止组件直接 fetch）
-│       ├── stores/             # Pinia 状态
-│       └── utils/              # 工具
+│   ├── src/
+│   │   ├── views/              # 页面视图
+│   │   ├── components/         # 组件
+│   │   ├── api/                # API 调用层（禁止组件直接 fetch）
+│   │   ├── stores/             # Pinia 状态
+│   │   └── utils/              # 工具
+│   ├── Dockerfile              # 前端镜像构建
+│   └── nginx.conf              # 静态托管与 /api 反向代理
 ├── data/                       # SQLite 数据库 + 上传文件
 ├── chroma/                     # Chroma 向量库
+├── docker-compose.yml          # 后端 + 前端容器编排
 ├── .env.example
 └── .gitignore
 ```
@@ -225,6 +229,11 @@ cd frontend
 npm install
 npm run dev
 npm test
+
+# Docker
+docker compose build
+docker compose up -d
+docker compose down
 ```
 
 ---
@@ -248,6 +257,9 @@ npm test
 - Chroma 嵌入式模式下数据存在 `chroma/` 目录，部署时需持久化保留该目录。
 - LangChain 版本更新频繁，依赖需锁定版本号（`requirements.txt` 用 `==`）。
 - SSE 在反向代理时需配置 `proxy_buffering off`，否则流式不生效。
+- 嵌入式 Chroma 与 SQLite 不适合多进程写，容器默认 `UVICORN_WORKERS=1`；扩容需改用 PostgreSQL 与独立 Chroma。
+- 容器 Nginx 的 `client_max_body_size` 必须大于 `MAX_FILE_SIZE_MB`，否则上传会被代理层拦截。
+- 容器数据保存在命名卷，`docker compose down -v` 会清空数据库、上传文件与向量库。
 - 中文字符在 BM25 分词时需配合 jieba，否则分词效果差。
 
 ---

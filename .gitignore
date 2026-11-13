@@ -77,6 +77,10 @@ logs/
 # ========== Alembic 迁移缓存 ==========
 backend/alembic/versions/__pycache__/
 
+# ========== 本地测试报告（不提交仓库） ==========
+测试总结报告_*.md
+测试报告_*.md
+
 # 本地代理、发布暂存与评测产物
 .claude/
 .codex/

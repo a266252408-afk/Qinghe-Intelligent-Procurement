@@ -1,0 +1,51 @@
+name: qinghe-procurement
+
+services:
+  backend:
+    image: qinghe-procurement-backend:local
+    build:
+      context: ./backend
+    env_file:
+      - path: ./backend/.env
+        required: false
+    environment:
+      # 容器内固定绝对路径，覆盖 .env 中的相对路径；CHROMA_HTTP_HOST 置空使用嵌入式 Chroma
+      DATABASE_URL: sqlite+aiosqlite:////app/data/app.db
+      UPLOAD_DIR: /app/data/uploads
+      CHROMA_DIR: /app/chroma
+      CHROMA_HTTP_HOST: ""
+      UVICORN_WORKERS: "${UVICORN_WORKERS:-1}"
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - backend_data:/app/data
+      - backend_chroma:/app/chroma
+    expose:
+      - "8000"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 40s
+
+  frontend:
+    image: qinghe-procurement-frontend:local
+    build:
+      context: ./frontend
+    ports:
+      - "${APP_PORT:-8090}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 10s
+
+volumes:
+  backend_data:
+  backend_chroma:

@@ -626,7 +626,7 @@ POST /api/sessions                   # 创建会话
 | 重排器 | BGE-Reranker（预留） | MVP 不启用 |
 | JWT | python-jose | FastAPI 官方推荐 |
 | 密码哈希 | bcrypt | 原生接口，无中间层兼容问题 |
-| 部署 | 本地/云服务器直接运行 | 前后端分离部署 |
+| 部署 | Docker Compose | 后端 + Nginx 前端，命名卷持久化 |
 
 ---
 
@@ -679,7 +679,8 @@ POST /api/sessions                   # 创建会话
 │   │   └── db/                 # 数据库连接
 │   ├── tests/                  # 后端测试
 │   ├── alembic/                # 数据库迁移
-│   └── requirements.txt
+│   ├── requirements.txt
+│   └── Dockerfile
 ├── frontend/
 │   ├── src/
 │   │   ├── views/              # 页面视图
@@ -687,9 +688,12 @@ POST /api/sessions                   # 创建会话
 │   │   ├── api/                # API 调用层
 │   │   ├── stores/             # Pinia 状态
 │   │   └── utils/              # 工具
-│   └── package.json
+│   ├── package.json
+│   ├── Dockerfile
+│   └── nginx.conf
 ├── data/                       # SQLite + 上传文件
 ├── chroma/                     # Chroma 向量库
+├── docker-compose.yml
 ├── .env.example
 └── .gitignore
 ```

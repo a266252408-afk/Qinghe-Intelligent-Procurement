@@ -39,7 +39,7 @@
 | **成本可观测** | llm_call_logs 表 | 开发者侧记录调优 |
 | **JWT 库** | python-jose | 认证 Token |
 | **密码哈希** | bcrypt | 密码安全 |
-| **部署** | 本地/云服务器直接运行 | 前后端分离部署 |
+| **部署** | Docker Compose | 后端 + Nginx 前端两个容器 |
 | **CI/CD** | GitHub Actions | 自动化测试与构建 |
 | **施工日志** | docs/dev-log.md | 开发进度记录 |
 
@@ -664,13 +664,14 @@ CREATE TABLE llm_call_logs (
 
 ### 9.1 选型决策
 
-**云服务器（阿里云/腾讯云）直接运行**
+**Docker Compose（backend + frontend/Nginx 两个容器）**
 
 ### 9.2 运行方式
 
-- 后端：`uvicorn app.main:app` 常驻运行；SQLite 与上传文件保存在 `backend/data/`。
-- 前端：`npm run build` 产出静态文件，由静态服务器托管；开发期使用 `npm run dev`。
-- Chroma：默认嵌入式模式，数据保存在 `chroma/` 目录，部署时需持久化保留。
+- backend：FastAPI + 嵌入式 Chroma + SQLite；启动前执行 Alembic，默认单 worker。
+- frontend：Vite 构建产物由 Nginx 托管，并把 `/api` 反代到 backend。
+- 数据：命名卷 `backend_data`（SQLite 与上传文件）与 `backend_chroma`（向量库）。
+- 对外端口：默认 8090，可用 `APP_PORT` 覆盖；backend 仅在内网暴露 8000。
 
 ### 9.3 环境变量清单
 
@@ -721,10 +722,10 @@ LOG_LEVEL=INFO
 
 ### 9.4 部署流程
 
-1. 本地开发 → GitHub 推送（私密仓库）
-2. 云服务器 `git pull` → 安装依赖 → `python -m alembic upgrade head`
-3. 启动后端 `uvicorn app.main:app`，前端构建产物由静态服务器托管
-4. 反向代理将 `/api` 转发到后端 8000 端口（SSE 需关闭缓冲）
+1. 本地开发 → GitHub 推送
+2. 使用者 clone 仓库 → 复制 `.env.example` 为 `backend/.env` 并填写配置
+3. `docker compose up -d --build` → 访问 `http://localhost:8090`
+4. 停止 `docker compose down`；清空数据 `docker compose down -v`
 
 ---
 
@@ -809,7 +810,7 @@ LOG_LEVEL=INFO
 | **成本可观测** | **llm_call_logs 表** | **开发者侧记录，便于调优** |
 | JWT 库 | python-jose | FastAPI 官方推荐 |
 | 密码哈希 | bcrypt | 跨平台稳定、无中间层兼容问题 |
-| 部署 | 本地/云服务器直接运行 | 部署链路简单、演示复现性强 |
+| 部署 | Docker Compose | 两容器一键启停、演示复现性强 |
 | CI/CD | GitHub Actions | 与私密仓库一致、免费额度够 |
 | 施工日志 | docs/dev-log.md | 与 commit 对应、面试讲解 |
 

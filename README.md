@@ -17,6 +17,8 @@
 
 前端：Vue 3、Vite、Pinia、Element Plus、ECharts。
 
+部署：Docker Compose（后端 + Nginx 前端两个容器），也可直接本地运行。
+
 ## 本地开发
 
 需要 Python 3.11、Node.js 20 和 npm。以下命令在仓库根目录执行，Windows 使用 PowerShell。
@@ -57,6 +59,38 @@ npm run dev
 
 Linux/macOS 对应激活命令为 `source .venv/bin/activate`，复制配置使用 `cp .env.example backend/.env`，创建目录使用 `mkdir -p data/uploads chroma`。
 
+## Docker Compose
+
+需要 Docker Engine 与 Compose 插件。先准备后端配置：
+
+```sh
+cp .env.example backend/.env
+# 至少修改 JWT_SECRET；模型 Key 不填时注册登录等基础功能可用，AI 功能不可用
+```
+
+构建并启动：
+
+```sh
+docker compose up -d --build
+docker compose ps
+docker compose logs -f backend
+```
+
+访问 <http://localhost:8090>，接口文档为 <http://localhost:8090/api/docs>。默认端口 8090 可用 `APP_PORT` 覆盖：
+
+```sh
+APP_PORT=8080 docker compose up -d
+```
+
+容器组成：`backend`（FastAPI + 嵌入式 Chroma + SQLite）与 `frontend`（Nginx 托管构建产物并反代 `/api`）。数据保存在命名卷 `backend_data`（数据库与上传文件）和 `backend_chroma`（向量库）中。镜像只在本机构建，不推送到镜像仓库；首次构建需要下载依赖，耗时数分钟。
+
+停止与清理：
+
+```sh
+docker compose down        # 停止容器，保留镜像与数据
+docker compose down -v     # 同时删除数据卷（数据库、上传文件、向量库）
+```
+
 ## 验证
 
 ```sh
@@ -77,9 +111,13 @@ npm run build
 backend/app/         API、Agent、Service、Schema、数据库与文件存储
 backend/alembic/     数据库版本迁移
 backend/tests/       后端测试
+backend/Dockerfile   后端镜像构建
 frontend/src/        页面、组件、接口层、状态管理与前端测试
+frontend/Dockerfile  前端镜像构建
+frontend/nginx.conf  前端静态托管与 /api 反向代理
 docs/               需求、架构、模块 SDD 与发布验证
 .github/workflows/  自动化验证
+docker-compose.yml  后端 + 前端容器编排
 .env.example        不含真实密钥的配置模板
 ```
 

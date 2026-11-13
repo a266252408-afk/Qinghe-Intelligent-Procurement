@@ -98,6 +98,7 @@
 |:---|:---:|:---|
 | T8.1 CI/CD | done | `.github/workflows/ci.yml` 执行后端测试覆盖率和前端构建 |
 | T8.2 知识库种子数据 | pending | 当前没有纳入仓库的行业知识种子文档、词典和模板数据交付包 |
+| T8.3 容器化交付 | done | 后端与前端 Dockerfile、`docker-compose.yml`、Nginx 反向代理与命名卷；本地构建验证 |
 
 ## 阶段 9：验收与回归
 

@@ -4,6 +4,32 @@
 > **更新规则**：每完成一个模块，必须更新本文件（CLAUDE.md §5.1 强制要求）。
 > **格式来源**：tech-stack.md §10.2。
 
+## [2026-11-26] 修复 BM25 缓存签名缺陷；检索配置项接通生产代码
+
+### 决策
+- BM25 语料缓存签名从 `(文档数, 最大ID)` 改为分块 `(id, content)` 内容指纹。
+  原因：SQLite 会复用已删除的最大 rowid，删除后重新入库时分块数与最大 ID 都可能
+  回到原值，旧签名继续命中旧索引，新上传内容检索不到。
+- `BM25_WEIGHT` / `VECTOR_WEIGHT` / `RAG_TOP_K` 从"仅存在于配置文件"改为生产代码
+  实际读取；默认值同步为调参定版 0.5 / 0.5 / 5，行为与现状一致。评测 sweep 仍可
+  显式传参覆盖。
+
+### 主要改动
+- `backend/app/services/knowledge_base.py`：新增 `_corpus_signature()`；`search_industry`
+  的 `top_k`、`bm25_weight`、`vector_weight` 缺省改为读 settings；删除重复 logger。
+- `backend/app/agents/knowledge.py`：最终依据条数改由 `settings.RAG_TOP_K` 控制，
+  检索深度保持 `max(10, RAG_TOP_K)`。
+- `backend/app/core/config.py`、`.env.example`：默认权重 0.4/0.6 → 0.5/0.5。
+- 本地 `backend/.env` 同步为 0.5/0.5（该文件不入库）。
+- `docs/module-sdd/knowledge_base_manager.md`：同步接口签名与权重说明。
+- 测试新增 3 项：SQLite rowid 复用触发 BM25 重建、检索配置读取、依据条数截断。
+
+### 验证
+- 后端全量 `pytest`：178 项通过（含新增 3 项）。
+- `ruff` 未安装，未执行格式化检查。
+
+---
+
 ## [2026-10-26] 询价单新增“绿化工程量清单”模板（复刻花箱清单版式）
 
 ### 决策

@@ -12,8 +12,8 @@ pytestmark = pytest.mark.asyncio
 def _clean_retrieval_caches():
     """清空 BM25/LLM 工厂进程级缓存。
 
-    _BM25_CACHE 签名为 (文档数, 最大ID)，内存库每个测试都从 id=1 重建，
-    不同测试间签名会撞车导致复用上一测试的索引，必须逐测试清理。
+    _BM25_CACHE 按语料内容指纹缓存；测试间仍主动清空，避免不同用例
+    共用同一 team_id 时相互影响。
     """
     from app.services import knowledge_base, llm_factory
 

@@ -44,11 +44,13 @@ class KnowledgeBaseManager:
     async def search_industry(
         query: str,
         team_id: int,
-        top_k: int = 5,
         db: AsyncSession = ...,
-        chroma_client = ...,
+        *,
+        top_k: int | None = None,   # 返回条数；None 读 settings.RAG_TOP_K
+        bm25_weight: float | None = None,    # None 读 settings.BM25_WEIGHT
+        vector_weight: float | None = None,  # None 读 settings.VECTOR_WEIGHT
     ) -> list[SearchResult]:
-        """混合检索（BM25 0.3 + 向量 0.7），返回 Top-K 结果。"""
+        """混合检索（默认 BM25 0.5 + 向量 0.5，可由配置覆盖），返回 Top-K 结果。"""
 
     # ── 长期记忆库 ─────────────────────────────────────────────
     @staticmethod

@@ -7,6 +7,7 @@ import re
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.schemas.knowledge_agent import (
     KnowledgeQueryInput,
     KnowledgeQueryResult,
@@ -118,11 +119,16 @@ class KnowledgeAgent:
         team_id: int,
         db: AsyncSession,
     ) -> KnowledgeQueryResult:
-        """检索行业知识库并用 LLM 生成回答，不读取长期材料历史。"""
+        """检索行业知识库并用 LLM 生成回答，不读取长期材料历史。
+
+        检索深度至少保持 10 条，保证混合召回质量；最终喂给模型的依据条数
+        由 settings.RAG_TOP_K 决定（默认 5）。
+        """
+        evidence_count = settings.RAG_TOP_K
         industry_results = await KnowledgeBaseManager.search_industry(
-            data.question, team_id, db, top_k=10
+            data.question, team_id, db, top_k=max(10, evidence_count)
         )
-        top_docs = industry_results[:5]
+        top_docs = industry_results[:evidence_count]
         if not top_docs:
             return KnowledgeQueryResult(answer=_NO_RESULT_ANSWER)
 

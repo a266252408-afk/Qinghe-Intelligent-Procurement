@@ -113,3 +113,28 @@ async def test_query_llm_failure_does_not_fabricate_answer(monkeypatch):
 
     assert result.answer == "模型整理失败，请核对下方检索依据。"
     assert result.results[0].content == "仅有依据"
+
+
+async def test_query_limits_evidence_to_configured_top_k(monkeypatch):
+    """最终依据条数由 RAG_TOP_K 决定，检索深度至少保留 10 条。"""
+    from app.core.config import settings
+
+    search = AsyncMock(return_value=[
+        SearchResult(source="industry", source_file=f"doc{i}.pdf",
+                     content=f"依据{i}", score=1 - i * 0.1)
+        for i in range(5)
+    ])
+    monkeypatch.setattr(
+        "app.services.knowledge_base.KnowledgeBaseManager.search_industry", search
+    )
+    monkeypatch.setattr("app.services.llm_factory.LLMFactory.get_medium", lambda: FakeLLM("回答"))
+    monkeypatch.setattr("app.services.llm_logger.LLMCallLogger.log", AsyncMock())
+    monkeypatch.setattr(settings, "RAG_TOP_K", 2)
+
+    result = await KnowledgeAgent().query(
+        KnowledgeQueryInput(question="查询", session_id="session-3"), team_id=3, db=None
+    )
+
+    assert len(result.results) == 2
+    assert search.await_args.kwargs["top_k"] == 10
+

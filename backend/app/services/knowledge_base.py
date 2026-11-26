@@ -33,11 +33,25 @@ logger = logging.getLogger(__name__)
 _COL_INDUSTRY = "industry_knowledge"
 _COL_HISTORY  = "purchase_history"
 
-# BM25 语料缓存：team_id → (语料签名(文档数, 最大ID), 已建索引)
-# 进程内缓存；多 worker 各自维护，签名不匹配（上传/删除文档）时自动重建
-_BM25_CACHE: dict[int, tuple[tuple[int, int], Any]] = {}
+# BM25 语料缓存：team_id → (语料内容指纹, 已建索引)
+# 进程内缓存；多 worker 各自维护，指纹不匹配（上传/删除/替换文档）时自动重建。
+# 不能用 (文档数, 最大ID) 做签名：SQLite 会复用已删除的最大 rowid，删除后重新
+# 入库的分块会得到相同签名，导致继续命中旧语料。
+_BM25_CACHE: dict[int, tuple[str, Any]] = {}
 
-logger = logging.getLogger(__name__)
+
+def _corpus_signature(docs: list[Any]) -> str:
+    """按分块 (id, content) 生成语料内容指纹。
+
+    逐条增量哈希，避免拼接大字符串；MD5 只用于缓存失效判断，不涉及安全场景。
+    """
+    digest = hashlib.md5()
+    for doc in docs:
+        digest.update(str(doc.id).encode("utf-8"))
+        digest.update(b"\x1f")
+        digest.update(doc.content.encode("utf-8"))
+        digest.update(b"\x00")
+    return digest.hexdigest()
 
 
 def _jieba_tokenize(text: str) -> list[str]:
@@ -303,38 +317,45 @@ class KnowledgeBaseManager:
         query: str,
         team_id: int,
         db: AsyncSession,
-        top_k: int = 5,
+        top_k: int | None = None,
         *,
         # 精确匹配默认关闭（调参记录1.2裁决：rerank 开启后 prepend 仅 +0.3pp MRR）；
         # 保留参数供 rerank 不可用时兜底与评测 A/B，一行可回滚
         exact_strategy: str = "off",
         exact_boost: float = 0.2,
-        # 评测数据裁决（检索调参记录）：0.5/0.5 较 0.4/0.6
-        # 在 test 集 Recall@5 0.77→1.00，validation 持平；园林文档规格词多，BM25 应占半壁
-        bm25_weight: float = 0.5,
-        vector_weight: float = 0.5,
+        # 调参记录第 8 轮定版：0.5/0.5 较 0.4/0.6 在 test 集 Recall@5 0.77→1.00；
+        # None 时读 settings，传值仅供评测 sweep 覆盖
+        bm25_weight: float | None = None,
+        vector_weight: float | None = None,
         rerank_enabled: bool | None = None,
         rerank_candidates: int | None = None,
         timing: dict | None = None,
     ) -> list[SearchResult]:
         """混合检索（向量 + BM25）行业知识库，返回 Top-K。
 
-        可选参数（评测调参用，默认值即生产行为）：
+        参数说明：
+        - top_k: 返回条数；None 读 settings.RAG_TOP_K
         - exact_strategy: 精确匹配环节策略，prepend=命中前置(可选兜底，默认关闭) /
           soft_boost=命中加分不置顶 / off=关闭(默认)
         - exact_boost: soft_boost 策略下的加分值
-        - bm25_weight / vector_weight: 混合检索权重
+        - bm25_weight / vector_weight: 混合检索权重；None 读 settings.BM25_WEIGHT /
+          settings.VECTOR_WEIGHT
         - rerank_enabled: 二阶段语义重排序开关；None 读 settings.RAG_RERANK_ENABLED
         - rerank_candidates: 重排序候选池大小；None 读 settings.RAG_RERANK_CANDIDATES
         - timing: 传入 dict 时回填分环节耗时（毫秒），供评测计时
         """
         if exact_strategy not in {"prepend", "soft_boost", "off"}:
             raise ValueError(f"未知 exact_strategy：{exact_strategy}")
+        resolved_top_k = settings.RAG_TOP_K if top_k is None else top_k
+        if resolved_top_k <= 0:
+            return []
+        resolved_bm25 = settings.BM25_WEIGHT if bm25_weight is None else bm25_weight
+        resolved_vector = settings.VECTOR_WEIGHT if vector_weight is None else vector_weight
         use_rerank = settings.RAG_RERANK_ENABLED if rerank_enabled is None else rerank_enabled
         pool = rerank_candidates or settings.RAG_RERANK_CANDIDATES
-        if use_rerank and pool < top_k:
-            pool = top_k  # 候选池不得小于返回条数
-        retrieval_k = pool if use_rerank else top_k
+        if use_rerank and pool < resolved_top_k:
+            pool = resolved_top_k  # 候选池不得小于返回条数
+        retrieval_k = pool if use_rerank else resolved_top_k
         import time as _time
         _t0 = _time.perf_counter()
         try:
@@ -368,8 +389,8 @@ class KnowledgeBaseManager:
         ]
 
         # BM25 语料构建包含全量文档 jieba 分词，是 CPU 密集操作：
-        # 放线程池执行，并按"文档数+最大ID"签名缓存索引，语料未变时直接复用
-        corpus_sig = (len(docs_db), docs_db[-1].id)
+        # 放线程池执行，并按分块内容指纹缓存索引，语料未变时直接复用
+        corpus_sig = _corpus_signature(docs_db)
         cached = _BM25_CACHE.get(team_id)
         if cached is not None and cached[0] == corpus_sig:
             bm25 = cached[1]
@@ -391,7 +412,7 @@ class KnowledgeBaseManager:
             )
             ensemble = EnsembleRetriever(
                 retrievers=[bm25, vector_retriever],
-                weights=[bm25_weight, vector_weight],
+                weights=[resolved_bm25, resolved_vector],
             )
             async with LLMGate.acquire("embedding"):
                 _t_hybrid = _time.perf_counter()
@@ -424,7 +445,7 @@ class KnowledgeBaseManager:
                 content=r.page_content,
                 score=1.0 - i * 0.1,
             )
-            for i, r in enumerate(results[:top_k])
+            for i, r in enumerate(results[:resolved_top_k])
         ]
 
     # ── 历史价格库 ─────────────────────────────────────────────────────────

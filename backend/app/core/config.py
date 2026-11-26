@@ -71,9 +71,9 @@ class Settings(BaseSettings):
     APP_ENV: str = "development"
     LOG_LEVEL: str = "INFO"
 
-    # 知识库检索权重
-    BM25_WEIGHT: float = 0.4
-    VECTOR_WEIGHT: float = 0.6
+    # 知识库检索权重与返回条数（调参记录第 8 轮定版：0.5/0.5 召回最优）
+    BM25_WEIGHT: float = 0.5
+    VECTOR_WEIGHT: float = 0.5
     RAG_TOP_K: int = 5
 
     # 检索重排序：默认关闭（生产采纳需评测裁决，见检索调参记录）
